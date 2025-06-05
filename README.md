@@ -10,6 +10,15 @@ cmake -B build -DBUILD_GUI=ON -DBUILD_BENCH=OFF -DBUILD_FUZZ_BINARY=OFF -DBUILD_
 cmake --build build -j $(nproc)
 ```
 
+Default data directories:
+```
+// Windows: C:\Users\Username\AppData\Local\drivechaincpp
+// macOS: ~/Library/Application Support/drivechaincpp
+// Unix-like: ~/.drivechaincpp
+```
+
+Default config file name: `drivechaincpp.conf`
+
 
 Based on Bitcoin Core:
 ---------------------
