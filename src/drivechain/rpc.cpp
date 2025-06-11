@@ -4,20 +4,14 @@
 
 #include <drivechain/rpc.h>
 
-//#include <common/system.h>
 #include <logging.h>
 #include <util/strencodings.h>
 #include <univalue.h>
 
-//#include <deque>
 #include <iostream>
-//#include <map>
 #include <optional>
-//#include <set>
 #include <sstream>
-//#include <stdlib.h>
 #include <string>
-//#include <vector>
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
