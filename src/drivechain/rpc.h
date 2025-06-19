@@ -23,4 +23,6 @@ bool RPCVerifyBMM(const uint256& hashMainBlock, const uint256& hashHStar, uint25
 
 bool RPCGetDeposits(/* Maybe: std::vector<DrivechainDeposit>& vDeposit*/);
 
+bool RPCGetSidechainDeposits();
+
 #endif // L2L_DRIVECHAIN_RPC_H

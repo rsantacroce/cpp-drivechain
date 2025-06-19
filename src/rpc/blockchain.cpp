@@ -61,6 +61,8 @@
 #include <optional>
 #include <vector>
 
+#include <drivechain/rpc.h>
+
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
 
@@ -3379,6 +3381,36 @@ return RPCHelpMan{
 }
 
 
+// special RPC for getting sidechain deposit txs from enforcer
+static RPCHelpMan getsidechaindeposittxs()
+{
+    return RPCHelpMan{
+        "getsidechaindeposittxs",
+        "Return information about all sidechain deposit txs from the enforcer using json-rpc.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                                              {RPCResult::Type::BOOL, "success", "Whether the request was successful"},
+                                              {RPCResult::Type::STR, "message", "Response message from the enforcer"},
+                                          }},
+        RPCExamples{HelpExampleCli("getsidechaindeposittxs", "") + HelpExampleRpc("getsidechaindeposittxs", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            LOCK(cs_main);
+            CChain& active_chain = chainman.ActiveChain();
+
+            UniValue res(UniValue::VOBJ);
+            if (!RPCGetSidechainDeposits()) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Failed to get deposits from enforcer");
+            }
+
+            res.pushKV("success", true);
+            res.pushKV("message", "Successfully retrieved sidechain deposits");
+            return res;
+        },
+    };
+}
+
 void RegisterBlockchainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -3406,6 +3438,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &dumptxoutset},
         {"blockchain", &loadtxoutset},
         {"blockchain", &getchainstates},
+        {"blockchain", &getsidechaindeposittxs},
         {"hidden", &invalidateblock},
         {"hidden", &reconsiderblock},
         {"hidden", &waitfornewblock},

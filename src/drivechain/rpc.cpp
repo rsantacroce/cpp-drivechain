@@ -28,6 +28,10 @@ const std::string BITCOIN_RPC_PASS = "password"; // TODO currently hardcoded by 
 const std::string BITCOIN_RPC_HOST = "127.0.0.1";
 const int BITCOIN_RPC_PORT = 38332;
 
+// TODO: These should be passed in as arguments to the constructor or config file
+const std::string ENFORCER_RPC_HOST = "127.0.0.1";
+const int ENFORCER_RPC_PORT = 8123;
+
 // Bitcoin-patched RPC client:
 // TODO The client function for enforcer should be pretty much the same?
 // If it is possible to use one function for btc and enforcer that would be
@@ -105,6 +109,83 @@ bool RPCBitcoinPatched(const std::string& json, boost::property_tree::ptree &ptr
         boost::property_tree::json_parser::read_json(jss, ptree);
     } catch (std::exception &exception) {
         LogPrintf("ERROR Sidechain client at %s:%d (sendRequestToMainchain): %s\n", BITCOIN_RPC_HOST, BITCOIN_RPC_PORT, exception.what());
+        return false;
+    }
+    return true;
+}
+
+bool RPCEnforcer(const std::string& json, boost::property_tree::ptree& ptree)
+{
+    try {
+        // Setup BOOST ASIO for a synchronus call to the mainchain
+        boost::asio::io_context io_service;
+        boost::asio::ip::tcp::socket socket(io_service);
+        boost::system::error_code error;
+        socket.connect(boost::asio::ip::tcp::endpoint(
+                           boost::asio::ip::make_address(ENFORCER_RPC_HOST), ENFORCER_RPC_PORT),
+                       error);
+
+        if (error) throw boost::system::system_error(error);
+
+        // HTTP request (package the json for sending)
+        boost::asio::streambuf output;
+        std::ostream os(&output);
+        os << "POST / HTTP/1.1\n";
+        os << "Host: 127.0.0.1\n";
+        os << "Content-Type: application/json\n";
+        os << "Connection: close\n";
+        os << "Content-Length: " << json.size() << "\n\n";
+        os << json;
+
+        // Send the request
+        boost::asio::write(socket, output);
+        
+        // Read the reponse
+        std::string data;
+        for (;;) {
+            boost::array<char, 256> buf;
+
+            // Read until end of file (socket closed)
+            boost::system::error_code e;
+            size_t sz = socket.read_some(boost::asio::buffer(buf), e);
+
+            data.insert(data.size(), buf.data(), sz);
+
+            if (e == boost::asio::error::eof)
+                break; // socket closed
+            else if (e)
+                throw boost::system::system_error(e);
+        }
+        
+        LogPrintf("Sent request to enforcer\n");
+        
+        // Parse HTTP response properly
+        std::stringstream ss(data);
+        std::string line;
+        
+        // Read HTTP status line
+        std::getline(ss, line);
+        if (line.find("200") == std::string::npos) {
+            LogPrintf("ERROR: HTTP response not 200: %s\n", line.c_str());
+            return false;
+        }
+        
+        // Skip headers until we find empty line
+        while (std::getline(ss, line) && !line.empty() && line != "\r") {
+            // Skip header lines
+        }
+        
+        // Read the JSON body
+        std::string jsonBody;
+        while (std::getline(ss, line)) {
+            jsonBody += line + "\n";
+        }
+        
+        // Parse JSON response
+        std::stringstream jss(jsonBody);
+        boost::property_tree::json_parser::read_json(jss, ptree);
+    } catch (std::exception& exception) {        
+        LogPrintf("ERROR Sidechain client at %s:%d (sendRequestToEnforcer): %s\n", ENFORCER_RPC_HOST, ENFORCER_RPC_PORT, exception.what());
         return false;
     }
     return true;
@@ -190,5 +271,24 @@ bool RPCGetDeposits(/* Maybe: std::vector<DrivechainDeposit>& vDeposit*/)
     //
     // TODO can we verify a specific deposit with the enforcer?
     //
+    return true;
+}
+
+bool RPCGetSidechainDeposits()
+{
+    std::string json;
+    json.append("{\"jsonrpc\": \"2.0\", \"id\":\"Drivechain\", ");
+    json.append("\"method\": \"validator.ping\", \"params\": ");
+    json.append("[] }");
+
+    boost::property_tree::ptree ptree;
+    if (!RPCEnforcer(json, ptree)) {
+        LogPrintf("ERROR Sidechain client failed to request ping!\n");
+        return false;
+    }
+
+    std::string strHash = ptree.get("result", "");
+    std::cout << "Result: " << strHash << std::endl;
+
     return true;
 }
