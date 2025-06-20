@@ -681,8 +681,13 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     hidden_args.emplace_back("-daemonwait");
 #endif
 
+    // Add drivechain specific options
+    argsman.AddArg("-enforcer-host=<host>", "Host of the enforcer", ArgsManager::ALLOW_ANY, OptionsCategory::DRIVECHAIN);
+    argsman.AddArg("-enforcer-port=<port>", "Port of the enforcer", ArgsManager::ALLOW_ANY, OptionsCategory::DRIVECHAIN);
+
     // Add the hidden options
     argsman.AddHiddenArgs(hidden_args);
+    
 }
 
 #if HAVE_SYSTEM
@@ -1176,6 +1181,7 @@ bool CheckHostPortOptions(const ArgsManager& args) {
     for (const std::string port_option : {
         "-port",
         "-rpcport",
+        "-enforcerport",
     }) {
         if (args.IsArgSet(port_option)) {
             const std::string port = args.GetArg(port_option, "");

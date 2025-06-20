@@ -3,6 +3,7 @@
 // file COPYING or https://www.opensource.org/licenses/mit-license.php
 
 #include <drivechain/rpc.h>
+#include <drivechain/config.h>
 
 #include <logging.h>
 #include <util/strencodings.h>
@@ -28,10 +29,6 @@ const std::string BITCOIN_RPC_USER = "user"; // TODO currently hardcoded by enfo
 const std::string BITCOIN_RPC_PASS = "password"; // TODO currently hardcoded by enforcer
 const std::string BITCOIN_RPC_HOST = "127.0.0.1";
 const int BITCOIN_RPC_PORT = 38332;
-
-// TODO: These should be passed in as arguments to the constructor or config file
-const std::string ENFORCER_RPC_HOST = "127.0.0.1";
-const int ENFORCER_RPC_PORT = 8123;
 
 // Bitcoin-patched RPC client:
 // TODO The client function for enforcer should be pretty much the same?
@@ -117,13 +114,15 @@ bool RPCBitcoinPatched(const std::string& json, boost::property_tree::ptree &ptr
 
 bool RPCEnforcer(const std::string& json, boost::property_tree::ptree& ptree)
 {
+    EnforcerConfig config = GetEnforcerConfig();
+
     try {
         // Setup BOOST ASIO for a synchronus call to the mainchain
         boost::asio::io_context io_service;
         boost::asio::ip::tcp::socket socket(io_service);
         boost::system::error_code error;
         socket.connect(boost::asio::ip::tcp::endpoint(
-                           boost::asio::ip::make_address(ENFORCER_RPC_HOST), ENFORCER_RPC_PORT),
+                           boost::asio::ip::make_address(config.host), config.port),
                        error);
 
         if (error) throw boost::system::system_error(error);
@@ -186,7 +185,7 @@ bool RPCEnforcer(const std::string& json, boost::property_tree::ptree& ptree)
         std::stringstream jss(jsonBody);
         boost::property_tree::json_parser::read_json(jss, ptree);
     } catch (std::exception& exception) {        
-        LogPrintf("ERROR Sidechain client at %s:%d (sendRequestToEnforcer): %s\n", ENFORCER_RPC_HOST, ENFORCER_RPC_PORT, exception.what());
+        LogPrintf("ERROR Sidechain client at %s:%d (sendRequestToEnforcer): %s\n", config.host, config.port, exception.what());
         return false;
     }
     return true;

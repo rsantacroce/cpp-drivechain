@@ -226,6 +226,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   dbwrapper.cpp
   deploymentstatus.cpp
   drivechain/drivechain.cpp
+  drivechain/config.cpp
   drivechain/rpc.cpp
   flatfile.cpp
   headerssync.cpp
