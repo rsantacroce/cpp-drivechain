@@ -3448,7 +3448,9 @@ static RPCHelpMan getctip()
     return RPCHelpMan{
         "getctip",
         "Return information about the current tip (CTip) from the enforcer using json-rpc.\n",
-        {},
+        {
+            {"sidechain_number", RPCArg::Type::NUM, RPCArg::Optional::NO, "The sidechain number to get CTip for"},
+        },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
                                               {RPCResult::Type::BOOL, "success", "Whether the request was successful"},
@@ -3458,16 +3460,13 @@ static RPCHelpMan getctip()
                                                   {RPCResult::Type::NUM, "value", "Value in satoshis"},
                                               }},
                                           }},
-        RPCExamples{HelpExampleCli("getctip", "") + HelpExampleRpc("getctip", "")},
+        RPCExamples{HelpExampleCli("getctip", "1") + HelpExampleRpc("getctip", "1")},        
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            LOCK(cs_main);
-            CChain& active_chain = chainman.ActiveChain();
-
+            int sidechain_number = request.params[0].getInt<int>();            
+            LogPrintf("getctip: %d\n", sidechain_number);
             UniValue res(UniValue::VOBJ);
-            CTip ctip;
-            
-            if (!RPCGetCTip(ctip)) {
+            CTip ctip;            
+            if (!RPCGetCTip(sidechain_number, ctip)) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Failed to get CTip from enforcer");
             }
 

@@ -350,12 +350,16 @@ bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits)
     }
 }
 
-bool RPCGetCTip(CTip& ctip)
+bool RPCGetCTip(const int& sidechain_number, CTip& ctip)
 {
     std::string json;
     json.append("{\"jsonrpc\": \"2.0\", \"id\":1, ");
-    json.append("\"method\": \"wallet.get_ctip\", \"params\": ");
-    json.append("[] }");
+    json.append("\"method\": \"validator.ctip\", \"params\": ");
+    json.append("[ ");
+    json.append(UniValue(sidechain_number).write());
+    json.append(" ] }");
+    
+    LogPrintf("RPCGetCTip: %s\n", json.c_str());
 
     boost::property_tree::ptree ptree;
     if (!RPCEnforcer(json, ptree)) {

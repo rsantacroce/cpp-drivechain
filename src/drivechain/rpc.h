@@ -49,6 +49,6 @@ bool RPCGetDeposits(/* Maybe: std::vector<DrivechainDeposit>& vDeposit*/);
 
 bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits);
 
-bool RPCGetCTip(CTip& ctip);
+bool RPCGetCTip(const int& sidechain_number, CTip& ctip);
 
 #endif // L2L_DRIVECHAIN_RPC_H
