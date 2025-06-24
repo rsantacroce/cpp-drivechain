@@ -27,6 +27,14 @@ struct SidechainDeposit {
     SidechainDeposit() : id(0), fee(0), received(0), sent(0), block_height(0), confirmation_time(0) {}
 };
 
+// Structure to hold CTip (current tip) data
+struct CTip {
+    std::string outpoint;  // Format: "txid:output_index"
+    uint64_t value;        // Value in satoshis
+    
+    CTip() : value(0) {}
+};
+
 // Bitcoin-patched RPC client interface
 
 bool RPCGetBTCBlockCount(int& nBlocks);
@@ -40,5 +48,7 @@ bool RPCVerifyBMM(const uint256& hashMainBlock, const uint256& hashHStar, uint25
 bool RPCGetDeposits(/* Maybe: std::vector<DrivechainDeposit>& vDeposit*/);
 
 bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits);
+
+bool RPCGetCTip(CTip& ctip);
 
 #endif // L2L_DRIVECHAIN_RPC_H

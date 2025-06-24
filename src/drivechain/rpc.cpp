@@ -349,3 +349,33 @@ bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits)
         return false;
     }
 }
+
+bool RPCGetCTip(CTip& ctip)
+{
+    std::string json;
+    json.append("{\"jsonrpc\": \"2.0\", \"id\":1, ");
+    json.append("\"method\": \"wallet.get_ctip\", \"params\": ");
+    json.append("[] }");
+
+    boost::property_tree::ptree ptree;
+    if (!RPCEnforcer(json, ptree)) {
+        LogPrintf("ERROR Sidechain client failed to request CTip!\n");
+        return false;
+    }
+
+    try {
+        // Get the result object from the JSON-RPC response
+        boost::property_tree::ptree result = ptree.get_child("result");
+        
+        // Parse the CTip data
+        ctip.outpoint = result.get("outpoint", "");
+        ctip.value = result.get("value", 0);
+        
+        LogPrintf("Successfully retrieved CTip: outpoint=%s, value=%lu\n", ctip.outpoint.c_str(), ctip.value);
+        return true;
+        
+    } catch (const std::exception& e) {
+        LogPrintf("ERROR parsing CTip response: %s\n", e.what());
+        return false;
+    }
+}

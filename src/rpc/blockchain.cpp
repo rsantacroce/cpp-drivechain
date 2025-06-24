@@ -3442,6 +3442,49 @@ static RPCHelpMan getsidechaindeposittxs()
     };
 }
 
+// special RPC for getting CTip from enforcer
+static RPCHelpMan getctip()
+{
+    return RPCHelpMan{
+        "getctip",
+        "Return information about the current tip (CTip) from the enforcer using json-rpc.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                                              {RPCResult::Type::BOOL, "success", "Whether the request was successful"},
+                                              {RPCResult::Type::STR, "message", "Response message from the enforcer"},
+                                              {RPCResult::Type::OBJ, "ctip", "Current tip information", {
+                                                  {RPCResult::Type::STR, "outpoint", "Transaction outpoint in format 'txid:output_index'"},
+                                                  {RPCResult::Type::NUM, "value", "Value in satoshis"},
+                                              }},
+                                          }},
+        RPCExamples{HelpExampleCli("getctip", "") + HelpExampleRpc("getctip", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            LOCK(cs_main);
+            CChain& active_chain = chainman.ActiveChain();
+
+            UniValue res(UniValue::VOBJ);
+            CTip ctip;
+            
+            if (!RPCGetCTip(ctip)) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Failed to get CTip from enforcer");
+            }
+
+            res.pushKV("success", true);
+            res.pushKV("message", "Successfully retrieved CTip");
+            
+            // Add CTip object to response
+            UniValue ctipObj(UniValue::VOBJ);
+            ctipObj.pushKV("outpoint", ctip.outpoint);
+            ctipObj.pushKV("value", ctip.value);
+            res.pushKV("ctip", ctipObj);
+            
+            return res;
+        },
+    };
+}
+
 void RegisterBlockchainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -3470,6 +3513,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &loadtxoutset},
         {"blockchain", &getchainstates},
         {"blockchain", &getsidechaindeposittxs},
+        {"blockchain", &getctip},
         {"hidden", &invalidateblock},
         {"hidden", &reconsiderblock},
         {"hidden", &waitfornewblock},
