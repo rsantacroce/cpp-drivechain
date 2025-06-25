@@ -114,7 +114,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 1; 
 
         consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000000000000000000000"};
-        consensus.defaultAssumeValid = uint256{"00000000000000000001b658dd1120e82e66d2790811f89ede9742ada3ed6d77"};
+        consensus.defaultAssumeValid = uint256{"c8d1e4d207001ebeeb59616014bcb036af40129a5a4997f0f5ca75b94d4ce351"};
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -133,7 +133,7 @@ public:
         genesis = CreateGenesisBlock(1750809748, 20, 0x1d00ffff, 1, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256{"bc88d111d5ac42ed83b41d9e936bb96eaf2d3479075de1180db8f67f607cb401"});
+        assert(consensus.hashGenesisBlock == uint256{"c8d1e4d207001ebeeb59616014bcb036af40129a5a4997f0f5ca75b94d4ce351"});
         assert(genesis.hashMerkleRoot == uint256{"dc6c10ad2a26613ae9b8a156ed9ca15e3e355a994a7e32cd7a4c3d7a478f57d2"});
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
@@ -151,7 +151,7 @@ public:
 
         checkpointData = {
             {
-                { 0, uint256{"bc88d111d5ac42ed83b41d9e936bb96eaf2d3479075de1180db8f67f607cb401"}},
+                { 0, uint256{"c8d1e4d207001ebeeb59616014bcb036af40129a5a4997f0f5ca75b94d4ce351"}},
             }
         };
 
@@ -246,7 +246,8 @@ public:
 
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"});
+
+        assert(consensus.hashGenesisBlock == uint256{"f26396ed790aaffc2858204f6c3ed1a752cf116b07b99f73422b51e76265f57b"});
         assert(genesis.hashMerkleRoot == uint256{"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"});
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
@@ -258,7 +259,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256{"0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"}},
+                {0, uint256{"f26396ed790aaffc2858204f6c3ed1a752cf116b07b99f73422b51e76265f57b"}},
             }
         };
 
