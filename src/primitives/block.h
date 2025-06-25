@@ -25,6 +25,7 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
+    uint256 hashMainchainBlock;
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
@@ -34,13 +35,14 @@ public:
         SetNull();
     }
 
-    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce); }
+    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.hashMainchainBlock, obj.nTime, obj.nBits, obj.nNonce); }
 
     void SetNull()
     {
         nVersion = 0;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
+        hashMainchainBlock.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
@@ -107,6 +109,7 @@ public:
         block.nVersion       = nVersion;
         block.hashPrevBlock  = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
+        block.hashMainchainBlock = hashMainchainBlock;
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;

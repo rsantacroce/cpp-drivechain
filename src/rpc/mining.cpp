@@ -479,11 +479,6 @@ static RPCHelpMan getmininginfo()
     next.pushKV("target", GetTarget(next_index, chainman.GetConsensus().powLimit).GetHex());
     obj.pushKV("next", next);
 
-    if (chainman.GetParams().GetChainType() == ChainType::SIGNET) {
-        const std::vector<uint8_t>& signet_challenge =
-            chainman.GetConsensus().signet_challenge;
-        obj.pushKV("signet_challenge", HexStr(signet_challenge));
-    }
     obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings), IsDeprecatedRPCEnabled("warnings")));
     return obj;
 },

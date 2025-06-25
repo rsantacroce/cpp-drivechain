@@ -158,9 +158,6 @@ std::list<SectionInfo> ArgsManager::GetUnrecognizedSections() const
     // Section names to be recognized in the config file.
     static const std::set<std::string> available_sections{
         ChainTypeToString(ChainType::REGTEST),
-        ChainTypeToString(ChainType::SIGNET),
-        ChainTypeToString(ChainType::TESTNET),
-        ChainTypeToString(ChainType::TESTNET4),
         ChainTypeToString(ChainType::MAIN),
     };
 
@@ -811,9 +808,6 @@ std::variant<ChainType, std::string> ArgsManager::GetChainArg() const
         return *chain_arg;
     }
     if (fRegTest) return ChainType::REGTEST;
-    if (fSigNet) return ChainType::SIGNET;
-    if (fTestNet) return ChainType::TESTNET;
-    if (fTestNet4) return ChainType::TESTNET4;
     return ChainType::MAIN;
 }
 

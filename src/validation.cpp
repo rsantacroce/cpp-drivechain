@@ -18,6 +18,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <cuckoocache.h>
+#include <drivechain/drivechain.h>
 #include <flatfile.h>
 #include <hash.h>
 #include <kernel/chain.h>
@@ -1939,15 +1940,7 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
-
-    CAmount nSubsidy = 50 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
-    return nSubsidy;
+    return 0;
 }
 
 CoinsViews::CoinsViews(DBParams db_params, CoinsViewOptions options)
@@ -3958,6 +3951,10 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
     // Check proof of work matches claimed amount
     if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
+
+    // Verify BMM
+    if (!VerifyBMM(block))
+        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "invalid-bmm", "bmm validation failed");
 
     return true;
 }
