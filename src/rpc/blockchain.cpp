@@ -1361,11 +1361,6 @@ RPCHelpMan getblockchaininfo()
             obj.pushKV("prune_target_size", chainman.m_blockman.GetPruneTarget());
         }
     }
-    if (chainman.GetParams().GetChainType() == ChainType::SIGNET) {
-        const std::vector<uint8_t>& signet_challenge =
-            chainman.GetParams().GetConsensus().signet_challenge;
-        obj.pushKV("signet_challenge", HexStr(signet_challenge));
-    }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
     obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings), IsDeprecatedRPCEnabled("warnings")));
