@@ -35,6 +35,28 @@ struct CTip {
     CTip() : value(0) {}
 };
 
+// Structure to hold BMM verification response data
+struct BlockHeaderInfo {
+    std::string block_hash;
+    std::string prev_block_hash;
+    int height;
+    std::string work;
+    
+    BlockHeaderInfo() : height(0) {}
+};
+
+struct BlockInfo {
+    std::string bmm_commitment;
+    std::vector<std::string> events;  // Events array from the response
+    
+    BlockInfo() {}
+};
+
+struct BlockInfoResponse {
+    BlockHeaderInfo header_info;
+    BlockInfo block_info;
+};
+
 // Bitcoin-patched RPC client interface
 
 bool RPCGetBTCBlockCount(int& nBlocks);
@@ -43,7 +65,10 @@ bool RPCGetBTCBlockHash(const int& nHeight, uint256& hash);
 
 // CUSF Enfocer RPC client interface
 
-bool RPCVerifyBMM(const uint256& hashMainBlock, const uint256& hashHStar, uint256& txid, int nTime);
+bool RPCVerifyBMM(const uint256& hashMainBlock, const unsigned int& sidechain_number);
+
+// Optional: Get detailed BMM verification data
+bool RPCGetBlockInfo(const uint256& hashMainBlock, const unsigned int& sidechain_number, BlockInfoResponse& blockInfo);
 
 bool RPCGetDeposits(/* Maybe: std::vector<DrivechainDeposit>& vDeposit*/);
 

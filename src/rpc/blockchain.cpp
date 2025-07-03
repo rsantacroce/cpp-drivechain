@@ -3481,6 +3481,80 @@ static RPCHelpMan getctip()
     };
 }
 
+// special RPC for getting block info from enforcer
+static RPCHelpMan getblockinfo()
+{
+    return RPCHelpMan{
+        "getblockinfo",
+        "Return detailed block information from the enforcer using json-rpc.\n",
+        {
+            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash to get info for"},
+            {"sidechain_number", RPCArg::Type::STR, RPCArg::Optional::NO, "The sidechain number"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                                              {RPCResult::Type::BOOL, "success", "Whether the request was successful"},
+                                              {RPCResult::Type::STR, "message", "Response message from the enforcer"},
+                                              {RPCResult::Type::OBJ, "block_info", "Block information", {
+                                                  {RPCResult::Type::OBJ, "header_info", "Block header information", {
+                                                      {RPCResult::Type::STR, "block_hash", "Block hash"},
+                                                      {RPCResult::Type::STR, "prev_block_hash", "Previous block hash"},
+                                                      {RPCResult::Type::NUM, "height", "Block height"},
+                                                      {RPCResult::Type::STR, "work", "Block work"},
+                                                  }},
+                                                  {RPCResult::Type::OBJ, "block_info", "Block details", {
+                                                      {RPCResult::Type::STR, "bmm_commitment", "BMM commitment"},
+                                                      {RPCResult::Type::ARR, "events", "Events array", {
+                                                          {RPCResult::Type::STR, "", "Event string"},
+                                                      }},
+                                                  }},
+                                              }},
+                                          }},
+        RPCExamples{HelpExampleCli("getblockinfo", "\"0000000000000000000000000000000000000000000000000000000000000000\" 1") + HelpExampleRpc("getblockinfo", "\"0000000000000000000000000000000000000000000000000000000000000000\", 1")},        
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            uint256 blockhash = ParseHashV(request.params[0], "blockhash");
+            int sidechain_number = request.params[1].getInt<int>();
+            
+            LogPrintf("getblockinfo: blockhash=%s, sidechain_number=%d\n", blockhash.ToString().c_str(), sidechain_number);
+            UniValue res(UniValue::VOBJ);
+            BlockInfoResponse blockInfo;            
+            if (!RPCGetBlockInfo(blockhash, sidechain_number, blockInfo)) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Failed to get block info from enforcer");
+            }
+
+            res.pushKV("success", true);
+            res.pushKV("message", "Successfully retrieved block info");
+            
+            // Add block info object to response
+            UniValue blockInfoObj(UniValue::VOBJ);
+            
+            // Add header info
+            UniValue headerInfoObj(UniValue::VOBJ);
+            headerInfoObj.pushKV("block_hash", blockInfo.header_info.block_hash);
+            headerInfoObj.pushKV("prev_block_hash", blockInfo.header_info.prev_block_hash);
+            headerInfoObj.pushKV("height", blockInfo.header_info.height);
+            headerInfoObj.pushKV("work", blockInfo.header_info.work);
+            blockInfoObj.pushKV("header_info", headerInfoObj);
+            
+            // Add block details
+            UniValue blockDetailsObj(UniValue::VOBJ);
+            blockDetailsObj.pushKV("bmm_commitment", blockInfo.block_info.bmm_commitment);
+            
+            // Add events array
+            UniValue eventsArray(UniValue::VARR);
+            for (const auto& event : blockInfo.block_info.events) {
+                eventsArray.push_back(event);
+            }
+            blockDetailsObj.pushKV("events", eventsArray);
+            blockInfoObj.pushKV("block_info", blockDetailsObj);
+            
+            res.pushKV("block_info", blockInfoObj);
+            
+            return res;
+        },
+    };
+}
+
 void RegisterBlockchainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -3510,6 +3584,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &getchainstates},
         {"blockchain", &getsidechaindeposittxs},
         {"blockchain", &getctip},
+        {"blockchain", &getblockinfo},
         {"hidden", &invalidateblock},
         {"hidden", &reconsiderblock},
         {"hidden", &waitfornewblock},
