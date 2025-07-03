@@ -76,4 +76,7 @@ bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits);
 
 bool RPCGetCTip(const int& sidechain_number, CTip& ctip);
 
+bool RPCCreateBMM(const int& sidechain_id, const int64_t& value_sats, const int& height, 
+                  const std::string& critical_hash, const std::string& prev_bytes, std::string& txid);
+
 #endif // L2L_DRIVECHAIN_RPC_H

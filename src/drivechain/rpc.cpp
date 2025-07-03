@@ -504,3 +504,51 @@ bool RPCGetCTip(const int& sidechain_number, CTip& ctip)
         return false;
     }
 }
+
+bool RPCCreateBMM(const int& sidechain_id, const int64_t& value_sats, const int& height, 
+                  const std::string& critical_hash, const std::string& prev_bytes, std::string& txid)
+{
+    // JSON for 'validator.create_bmm' enforcer HTTP-RPC
+    std::string json;
+    json.append("{\"jsonrpc\": \"2.0\", \"id\":1, ");
+    json.append("\"method\": \"validator.create_bmm\", \"params\": ");
+    json.append("[ ");
+    json.append(UniValue(sidechain_id).write());
+    json.append(", ");
+    json.append(UniValue(value_sats).write());
+    json.append(", ");
+    json.append(UniValue(height).write());
+    json.append(", ");
+    json.append("\"" + critical_hash + "\"");
+    json.append(", ");
+    json.append("\"" + prev_bytes + "\"");
+    json.append(" ] }");
+    
+    LogPrintf("RPCCreateBMM: %s\n", json.c_str());
+
+    boost::property_tree::ptree ptree;
+    if (!RPCEnforcer(json, ptree)) {
+        LogPrintf("ERROR Sidechain client failed to create BMM!\n");
+        return false;
+    }
+
+    try {
+        // Get the result object from the JSON-RPC response
+        boost::property_tree::ptree result = ptree.get_child("result");
+        
+        // Get the txid from the result
+        txid = result.get("txid", "");
+        
+        if (txid.empty()) {
+            LogPrintf("ERROR: No txid found in BMM creation response\n");
+            return false;
+        }
+        
+        LogPrintf("Successfully created BMM with txid: %s\n", txid.c_str());
+        return true;
+        
+    } catch (const std::exception& e) {
+        LogPrintf("ERROR parsing BMM creation response: %s\n", e.what());
+        return false;
+    }
+}
