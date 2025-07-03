@@ -3444,7 +3444,7 @@ static RPCHelpMan getctip()
         "getctip",
         "Return information about the current tip (CTip) from the enforcer using json-rpc.\n",
         {
-            {"sidechain_number", RPCArg::Type::STR, RPCArg::Optional::NO, "The sidechain number to get CTip for"},
+            {"sidechain_number", RPCArg::Type::NUM, RPCArg::Optional::NO, "The sidechain number to get CTip for"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
@@ -3457,8 +3457,7 @@ static RPCHelpMan getctip()
                                           }},
         RPCExamples{HelpExampleCli("getctip", "1") + HelpExampleRpc("getctip", "1")},        
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            // Parse sidechain number from params, using get_int64 which handles string->number conversion
-            int sidechain_number = 9; // request.params[0].get_int64();
+            int sidechain_number = request.params[0].getInt<int>();
             
             LogPrintf("getctip: %d\n", sidechain_number);
             UniValue res(UniValue::VOBJ);
@@ -3489,7 +3488,7 @@ static RPCHelpMan getblockinfo()
         "Return detailed block information from the enforcer using json-rpc.\n",
         {
             {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash to get info for"},
-            {"sidechain_number", RPCArg::Type::STR, RPCArg::Optional::NO, "The sidechain number"},
+            {"sidechain_number", RPCArg::Type::NUM, RPCArg::Optional::NO, "The sidechain number"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
