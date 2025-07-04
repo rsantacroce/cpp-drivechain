@@ -3554,6 +3554,52 @@ static RPCHelpMan getblockinfo()
     };
 }
 
+// special RPC for creating BMM from enforcer
+static RPCHelpMan createbmm()
+{
+    return RPCHelpMan{
+        "createbmm",
+        "Create a BMM (Blind Merged Mining) transaction using the enforcer via json-rpc.\n",
+        {
+            {"sidechain_id", RPCArg::Type::NUM, RPCArg::Optional::NO, "The sidechain ID"},
+            {"value_sats", RPCArg::Type::NUM, RPCArg::Optional::NO, "The value in satoshis"},
+            {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "The block height"},
+            {"critical_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The critical hash"},
+            {"prev_bytes", RPCArg::Type::STR, RPCArg::Optional::NO, "The previous bytes"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                                              {RPCResult::Type::BOOL, "success", "Whether the request was successful"},
+                                              {RPCResult::Type::STR, "message", "Response message from the enforcer"},
+                                              {RPCResult::Type::STR, "txid", "The transaction ID of the created BMM"},
+                                          }},
+        RPCExamples{HelpExampleCli("createbmm", "1 1000000 1000 \"critical_hash_here\" \"prev_bytes_here\"") + HelpExampleRpc("createbmm", "1, 1000000, 1000, \"critical_hash_here\", \"prev_bytes_here\"")},        
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            int sidechain_id = request.params[0].getInt<int>();
+            int64_t value_sats = request.params[1].getInt<int64_t>();
+            int height = request.params[2].getInt<int>();
+            std::string critical_hash = request.params[3].get_str();
+            std::string prev_bytes = request.params[4].get_str();
+            
+            LogPrintf("createbmm: sidechain_id=%d, value_sats=%ld, height=%d, critical_hash=%s, prev_bytes=%s\n", 
+                     sidechain_id, value_sats, height, critical_hash.c_str(), prev_bytes.c_str());
+            
+            UniValue res(UniValue::VOBJ);
+            std::string txid;
+            
+            if (!RPCCreateBMM(sidechain_id, value_sats, height, critical_hash, prev_bytes, txid)) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Failed to create BMM from enforcer");
+            }
+
+            res.pushKV("success", true);
+            res.pushKV("message", "Successfully created BMM");
+            res.pushKV("txid", txid);
+            
+            return res;
+        },
+    };
+}
+
 void RegisterBlockchainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -3584,6 +3630,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &getsidechaindeposittxs},
         {"blockchain", &getctip},
         {"blockchain", &getblockinfo},
+        {"blockchain", &createbmm},
         {"hidden", &invalidateblock},
         {"hidden", &reconsiderblock},
         {"hidden", &waitfornewblock},

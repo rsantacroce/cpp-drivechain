@@ -322,6 +322,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "addconnection", 2, "v2transport" },
     { "getctip", 0, "sidechain_number" },
     { "getblockinfo", 1, "sidechain_number" },
+    { "createbmm", 0, "sidechain_id" },
+    { "createbmm", 1, "value_sats" },
+    { "createbmm", 2, "height" },
 };
 
 // clang-format on
