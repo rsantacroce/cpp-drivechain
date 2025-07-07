@@ -249,7 +249,7 @@ bool RPCGetBTCBlockHash(const int& nHeight, uint256& hash)
 //
 
 //get_block_info
-bool RPCVerifyBMM(const uint256& hashMainBlock, const unsigned int& sidechain_number)
+bool RPCVerifyBMM(const uint256& hashMainBlock, const uint256& hashHStar, const unsigned int& sidechain_number)
 {
     // JSON for 'validator.get_block_info' enforcer HTTP-RPC
     std::string json;
@@ -298,6 +298,13 @@ bool RPCVerifyBMM(const uint256& hashMainBlock, const unsigned int& sidechain_nu
         // Check if we have a valid BMM commitment
         if (bmm_commitment.empty()) {
             LogPrintf("ERROR: No BMM commitment found in block info\n");
+            return false;
+        }
+
+        // Check if the provided hashHStar matches the BMM commitment
+        if (hashHStar.ToString() != bmm_commitment) {
+            LogPrintf("ERROR: hashHStar (%s) does not match BMM commitment (%s)\n",
+                      hashHStar.ToString(), bmm_commitment);
             return false;
         }
         
