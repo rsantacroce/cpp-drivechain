@@ -15,14 +15,13 @@
 
 // BMM validation & cache:
 
-
 bool VerifyBMM(const CBlock& block)
 {
     // Skip genesis block
     if (block.GetHash() == Params().GetConsensus().hashGenesisBlock)
         return true;
 
-    // TODO re-implement bmm caching
+    // TODO re-implement verified bmm caching
     // Have we already verified BMM for this block?
     //if (bmmCache.HaveVerifiedBMM(block.GetHash()))
     //    return true;
@@ -31,7 +30,7 @@ bool VerifyBMM(const CBlock& block)
     const uint256 hashHStar = block.hashMerkleRoot;
 
     // Mainchain block hash
-    const uint256 hashMainBlock = uint256(); // TODO block.hashMainchainBlock
+    const uint256 hashMainBlock = block.hashMainchainBlock;
 
     // Verify BMM with local CUSF Enforcer
     uint256 txid;
@@ -48,3 +47,5 @@ bool VerifyBMM(const CBlock& block)
 
     return true;
 }
+
+
