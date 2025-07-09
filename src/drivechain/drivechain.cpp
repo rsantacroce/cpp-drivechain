@@ -37,7 +37,7 @@ bool VerifyBMM(const CBlock& block)
     uint256 txid;
     uint32_t nTime = 1;
     
-    if (!RPCVerifyBMM(hashMainBlock, hashHStar, txid, nTime)) {
+    if (!RPCVerifyBMM(hashMainBlock, hashHStar, THIS_SIDECHAIN)) {
         LogPrintf("%s: Enforcer did not find BMM h*: %s in mainchain block: %s!\n", __func__, hashHStar.ToString(), hashMainBlock.ToString());
         return false;
     }
