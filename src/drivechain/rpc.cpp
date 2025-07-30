@@ -244,6 +244,33 @@ bool RPCGetBTCBlockHash(const int& nHeight, uint256& hash)
     return true;
 }
 
+bool RPCGetBTCTip(uint256& hash)
+{
+    // JSON for 'getbestblockhash' mainchain HTTP-RPC
+    std::string json;
+    json.append("{\"jsonrpc\": \"1.0\", \"id\":\"Drivechain\", ");
+    json.append("\"method\": \"getbestblockhash\", \"params\": ");
+    json.append("[");
+    json.append("] }");
+
+    // Try to request mainchain block hash
+    boost::property_tree::ptree ptree;
+    if (!RPCBitcoinPatched(json, ptree)) {
+        LogPrintf("ERROR Sidechain client failed to mainchain tip!\n");
+        return false;
+    }
+
+    std::string strHash = ptree.get("result", "");
+    std::optional hash_rv = uint256::FromHex(strHash);
+
+    if (!hash_rv.has_value())
+        return false;
+
+    hash = hash_rv.value();
+
+    return true;
+}
+
 //
 // Enforcer rpc requests:
 //

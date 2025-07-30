@@ -402,6 +402,17 @@ void BMMCache::ResetMainBlockCache()
     mapMainBlock.clear();
 }
 
+uint256 BMMCache::GetLastMainchainTipBMM()
+{
+    return hashMainchainTipLastBMM;
+}
+
+void BMMCache::SetLastMainchainTipBMM(const uint256& hash)
+{
+    LogPrintf("BMMCache %s: BMM cached new attempt for mainchain tip: %s", __func__, hash.ToString());
+    hashMainchainTipLastBMM = hash;
+}
+
 void BMMCache::LoadBMMCache()
 {
     fs::path path = gArgs.GetDataDirNet() / "bmm.dat";

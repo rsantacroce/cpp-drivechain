@@ -63,6 +63,8 @@ bool RPCGetBTCBlockCount(int& nBlocks);
 
 bool RPCGetBTCBlockHash(const int& nHeight, uint256& hash);
 
+bool RPCGetBTCTip(uint256& hash);
+
 // CUSF Enfocer RPC client interface
 
 bool RPCVerifyBMM(const uint256& hashMainBlock, const uint256& hashHStar,const unsigned int& sidechain_number);

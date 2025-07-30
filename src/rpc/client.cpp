@@ -325,6 +325,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createbmm", 0, "sidechain_id" },
     { "createbmm", 1, "value_sats" },
     { "createbmm", 2, "height" },
+    { "refreshbmm", 0, "value_sats" },
 };
 
 // clang-format on
