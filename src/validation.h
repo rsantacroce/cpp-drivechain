@@ -1357,5 +1357,6 @@ bool IsBIP30Unspendable(const CBlockIndex& block_index);
 void LoadBMMCache();
 void DumpBMMCache();
 void UpdateMainBlockCache();
+BMMCache* GetBMMCache();
 
 #endif // BITCOIN_VALIDATION_H

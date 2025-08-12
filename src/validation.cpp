@@ -3956,7 +3956,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     // Verify BMM
-    if (!VerifyBMM(block))
+    if (fCheckPOW && !VerifyBMM(block))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "invalid-bmm", "bmm validation failed");
 
     return true;
@@ -6597,4 +6597,9 @@ void DumpBMMCache()
 void UpdateMainBlockCache()
 {
     bmmCache.UpdateMainBlockCache();
+}
+
+BMMCache* GetBMMCache() 
+{
+    return &bmmCache;
 }

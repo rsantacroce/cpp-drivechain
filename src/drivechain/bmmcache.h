@@ -71,6 +71,10 @@ public:
 
     bool VerifyMainBlockCache(std::string&);
 
+    uint256 GetLastMainchainTipBMM();
+    
+    void SetLastMainchainTipBMM(const uint256& hash);
+
     /** Dump the BMM caches to disk. */
     void DumpBMMCache();
 

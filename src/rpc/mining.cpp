@@ -43,6 +43,10 @@
 #include <validation.h>
 #include <validationinterface.h>
 
+#include <drivechain/bmmcache.h>
+#include <drivechain/drivechain.h>
+#include <drivechain/rpc.h>
+
 #include <memory>
 #include <stdint.h>
 
@@ -1114,6 +1118,175 @@ static RPCHelpMan submitheader()
     };
 }
 
+// Check recent mainchain blocks for commitments to our previous BMM requests
+static RPCHelpMan refreshbmm()
+{
+    return RPCHelpMan{
+        "refreshbmm",
+        "Check recent mainchain blocks for commitments to our previous BMM requests using the enforcer via json-rpc.\n",
+        {
+            {"value_sats", RPCArg::Type::NUM, RPCArg::Optional::NO, "The value in satoshis to spend on new bmm request"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                                              {RPCResult::Type::BOOL, "success", "Whether the request was successful"},
+                                              {RPCResult::Type::STR, "message", "Response message from the enforcer"},
+                                              {RPCResult::Type::STR, "mainchain_tip", "Mainchain tip hash at time of request"},
+                                              {RPCResult::Type::STR, "bmm_created", "New BMM h* if a new request is created"},
+                                              {RPCResult::Type::STR, "bmm_connected", "Connected sidechain block hash if BMM is verified"},
+                                          }},
+        RPCExamples{HelpExampleCli("refreshbmm", "1000000") + HelpExampleRpc("refreshbmm", "1000000")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            //
+            // A new BMM block will be created if we haven't created one yet 
+            // for the current mainchain tip. 
+            // New BMM blocks do not have the mainchain block hash where the
+            // BMM critical hash proof coinbase output can be located yet. 
+            // We will request BMM commitment from the enforcer and wait 
+            // for a BMM commitment to be included in a coinbase output.
+            //
+            // If a new BMM block is created then a BMM request will be sent
+            // via RPC to the local enforcer. This creates a transaction which
+            // pays miners to include the critical hash required for our BMM
+            // block to be connected to the sidechain.
+            //
+            // Recent mainchain blocks will be scanned for critical hash
+            // commitments for BMM blocks that we have created previously.
+            //
+            // If a critical hash commit is found in a mainchain block for one
+            // of the BMM blocks we have created, the mainchain block hash
+            // where the critical hash commit proof can be located will be 
+            // added to our BMM block and then it will be submitted.
+            //
+            // TODO
+            // * handle reorgs if detected
+            // * Allow forks specifying previous block instead of tip
+            // * Check connections
+            //
+            
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            ChainstateManager& chainman = EnsureChainman(node);
+            Mining& miner = EnsureMining(node);
+            LOCK(cs_main);
+            uint256 tip{CHECK_NONFATAL(miner.getTip()).value().hash};
+
+            // Check bmm payment amount
+            CAmount bmm_amount = AmountFromValue(request.params[0]);
+            if (bmm_amount <= 0)
+                throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for BMM!");
+
+
+            // TODO
+            // Check connection to mainchain
+            //if (!CheckMainchainConnection())
+            //    throw JSONRPCError(RPC_MISC_ERROR, "Must be connected to mainchain (not connected)!");
+
+            // TODO
+            // Check connection to enforcer
+            //if (!CheckEnforcerConnection())
+            //    throw JSONRPCError(RPC_MISC_ERROR, "Must be connected to enforcer (not connected)!");
+
+
+            // Update mainchain block cache, and check for reorgs
+            // TODO we are not handling reorgs until the enforcer implements reorg detection
+            UpdateMainBlockCache();
+
+            // Set prev bytes for BMM request
+            std::string prev_bytes = "TODO";
+
+            uint256 hashMainchainTip;
+            if (!RPCGetBTCTip(hashMainchainTip)) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Failed to get mainchain tip!");
+            }
+
+            int main_height;
+            if (!RPCGetBTCBlockCount(main_height)) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Failed to get mainchain block count!");
+            }
+
+            BMMCache* bmmCache = GetBMMCache();
+
+            // Create a new BMM block and BMM request if we have not yet 
+            // for the current mainchain tip
+            std::string bmm_txid = "";
+            std::string bmm_new_critical_hash = "";
+            std::string bmm_new_info = "";
+            if (bmmCache->GetLastMainchainTipBMM() != hashMainchainTip) { 
+                // Create new BMM block
+                static std::unique_ptr<BlockTemplate> block_template;
+                block_template = miner.createNewBlock();
+                CHECK_NONFATAL(block_template);
+            
+                CBlock block{block_template->getBlock()};
+
+                block.hashMerkleRoot = BlockMerkleRoot(block);
+
+                bmm_new_critical_hash = block.hashMerkleRoot.ToString();
+
+                // Create new BMM request transaction with enforcer
+                if (!RPCCreateBMM(THIS_SIDECHAIN, bmm_amount, main_height, bmm_new_critical_hash, prev_bytes, bmm_txid)) {
+                    throw JSONRPCError(RPC_MISC_ERROR, "Failed to create BMM request with enforcer!");
+                }
+
+                bmmCache->SetLastMainchainTipBMM(hashMainchainTip);
+                bmmCache->StoreBMMBlock(block);
+                
+                bmm_new_info = "Created new BMM block and request";
+            } else {
+                bmm_new_info = "BMM request already created for current mainchain tip";
+            }
+
+            // Can we find any mainchain BMM commits to connect a new block?
+            std::string bmm_connect_info = "No new BMM commits found by enforcer";
+            std::vector<CBlock> vBMMCache = bmmCache->GetBMMBlockCache();
+            std::vector<uint256> vRecentMainHash = bmmCache->GetRecentMainBlockHashes();
+            // Check recent mainchain blocks with the enforcer for our BMM commits
+            bool connected_bmm = false;
+            for (const uint256& u : vRecentMainHash) {
+                // Get block info from enforcer
+                BlockInfoResponse block_info_res;
+                RPCGetBlockInfo(u, THIS_SIDECHAIN, block_info_res);
+                
+                // Search enforcer response for our BMM requests
+                for (const CBlock& b : vBMMCache) {
+                    const uint256 hashCritical = b.hashMerkleRoot;
+                    if (block_info_res.block_info.bmm_commitment == hashCritical.ToString()) {
+                        // We found a mainchain BMM commit, so submit our block
+                        bmm_connect_info = "Found BMM commit for ";
+                        bmm_connect_info += hashCritical.ToString();
+
+                        // Add mainchain block hash that includes our 
+                        // BMM commit to our block and then submit 
+                        CBlock block = b;
+                        block.hashMainchainBlock = u;
+
+                        // Connect block now that it has valid BMM
+                        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
+                        if (!chainman.ProcessNewBlock(shared_pblock, true, true, NULL)) {
+                            throw JSONRPCError(RPC_MISC_ERROR, "Failed to connect block with BMM!");
+                        }
+
+                        connected_bmm = true;
+                        break;
+                    }
+                    if (connected_bmm)
+                        break;
+                }
+            }
+
+            UniValue res(UniValue::VOBJ);
+            res.pushKV("success", true);
+            res.pushKV("message", "Updated BMM");
+            res.pushKV("bmm_txid", bmm_txid);
+            res.pushKV("bmm_critical_hash", bmm_new_critical_hash);
+            res.pushKV("bmm_new_info", bmm_new_info);
+            res.pushKV("bmm_connect_info", bmm_connect_info);
+
+            return res;
+        },
+    };
+}
+
 void RegisterMiningRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -1124,6 +1297,8 @@ void RegisterMiningRPCCommands(CRPCTable& t)
         {"mining", &getblocktemplate},
         {"mining", &submitblock},
         {"mining", &submitheader},
+        {"mining", &refreshbmm},
+
 
         {"hidden", &generatetoaddress},
         {"hidden", &generatetodescriptor},
