@@ -24,7 +24,22 @@ struct SidechainDeposit {
     std::string block_hash;
     uint64_t confirmation_time;
     
-    SidechainDeposit() : id(0), fee(0), received(0), sent(0), block_height(0), confirmation_time(0) {}
+    // Additional fields for enhanced deposit information
+    int sidechain_number;
+    uint64_t deposit_amount;
+    std::vector<uint8_t> destination_address;
+    
+    // Wallet transaction data
+    struct WalletTx {
+        int version;
+        uint32_t lock_time;
+        std::vector<std::string> inputs;  // Previous output references
+        std::vector<std::string> outputs; // Script pubkeys
+        std::vector<std::string> witnesses; // Witness data if present
+    } wallet_tx;
+    
+    SidechainDeposit() : id(0), fee(0), received(0), sent(0), block_height(0), confirmation_time(0), 
+                         sidechain_number(0), deposit_amount(0) {}
 };
 
 // Structure to hold CTip (current tip) data

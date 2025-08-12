@@ -3397,6 +3397,22 @@ static RPCHelpMan getsidechaindeposittxs()
                                                       {RPCResult::Type::NUM, "block_height", "Block height where confirmed"},
                                                       {RPCResult::Type::STR, "block_hash", "Block hash where confirmed"},
                                                       {RPCResult::Type::NUM, "confirmation_time", "Block confirmation timestamp"},
+                                                      {RPCResult::Type::NUM, "sidechain_number", "Sidechain number"},
+                                                      {RPCResult::Type::NUM, "deposit_amount", "Deposit amount in satoshis"},
+                                                      {RPCResult::Type::STR, "destination_address", "Destination address as hex string"},
+                                                      {RPCResult::Type::OBJ, "wallet_tx", "Full wallet transaction data", {
+                                                          {RPCResult::Type::NUM, "version", "Transaction version"},
+                                                          {RPCResult::Type::NUM, "lock_time", "Transaction lock time"},
+                                                          {RPCResult::Type::ARR, "inputs", "Transaction inputs", {
+                                                              {RPCResult::Type::STR, "", "Previous output reference"}
+                                                          }},
+                                                          {RPCResult::Type::ARR, "outputs", "Transaction outputs", {
+                                                              {RPCResult::Type::STR, "", "Script pubkey"}
+                                                          }},
+                                                          {RPCResult::Type::ARR, "witnesses", "Transaction witnesses", {
+                                                              {RPCResult::Type::STR, "", "Witness data"}
+                                                          }}
+                                                      }}
                                                   }},
                                               }},
                                           }},
@@ -3428,6 +3444,42 @@ static RPCHelpMan getsidechaindeposittxs()
                 depositObj.pushKV("block_height", deposit.block_height);
                 depositObj.pushKV("block_hash", deposit.block_hash);
                 depositObj.pushKV("confirmation_time", deposit.confirmation_time);
+                depositObj.pushKV("sidechain_number", deposit.sidechain_number);
+                depositObj.pushKV("deposit_amount", deposit.deposit_amount);
+                
+                // Convert destination address bytes back to hex string
+                std::string dest_addr_hex;
+                for (uint8_t byte : deposit.destination_address) {
+                    char hex[3];
+                    snprintf(hex, sizeof(hex), "%02x", byte);
+                    dest_addr_hex += hex;
+                }
+                depositObj.pushKV("destination_address", dest_addr_hex);
+                
+                // Add wallet transaction data
+                UniValue walletTxObj(UniValue::VOBJ);
+                walletTxObj.pushKV("version", deposit.wallet_tx.version);
+                walletTxObj.pushKV("lock_time", deposit.wallet_tx.lock_time);
+                
+                UniValue inputsArray(UniValue::VARR);
+                for (const auto& input : deposit.wallet_tx.inputs) {
+                    inputsArray.push_back(input);
+                }
+                walletTxObj.pushKV("inputs", inputsArray);
+                
+                UniValue outputsArray(UniValue::VARR);
+                for (const auto& output : deposit.wallet_tx.outputs) {
+                    outputsArray.push_back(output);
+                }
+                walletTxObj.pushKV("outputs", outputsArray);
+                
+                UniValue witnessesArray(UniValue::VARR);
+                for (const auto& witness : deposit.wallet_tx.witnesses) {
+                    witnessesArray.push_back(witness);
+                }
+                walletTxObj.pushKV("witnesses", witnessesArray);
+                
+                depositObj.pushKV("wallet_tx", walletTxObj);
                 depositsArray.push_back(depositObj);
             }
             res.pushKV("deposits", depositsArray);

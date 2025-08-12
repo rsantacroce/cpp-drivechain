@@ -422,35 +422,102 @@ bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits)
         // Clear the deposits vector
         deposits.clear();
         
-        // Iterate through the result array
+        // Iterate through the result array - each item is now a direct deposit object
         for (const auto& deposit_item : result_array) {
             if (deposit_item.second.empty()) continue;
             
-            // Each deposit item should be an array with [id, transaction_data]
-            auto deposit_array = deposit_item.second;
-            auto it = deposit_array.begin();
-            
-            if (it == deposit_array.end()) continue;
-            
             SidechainDeposit deposit;
             
-            // Get the ID (first element)
-            deposit.id = it->second.get_value<int>();
-            ++it;
+            // Parse the deposit object directly (no more array format)
+            auto deposit_data = deposit_item.second;
             
-            if (it == deposit_array.end()) continue;
+            // Parse basic transaction fields
+            deposit.txid = deposit_data.get("txid", "");
+            deposit.fee = deposit_data.get("fee", 0);
+            deposit.received = deposit_data.get("received", 0);
+            deposit.sent = deposit_data.get("sent", 0);
             
-            // Get the transaction data (second element)
-            auto tx_data = it->second;
+            // Parse sidechain number and deposit amount
+            deposit.sidechain_number = deposit_data.get("sidechain_number", 0);
+            deposit.deposit_amount = deposit_data.get("deposit_amount", 0);
             
-            // Parse transaction fields
-            deposit.txid = tx_data.get("txid", "");
-            deposit.fee = tx_data.get("fee", 0);
-            deposit.received = tx_data.get("received", 0);
-            deposit.sent = tx_data.get("sent", 0);
+            // Parse destination address (hex string to bytes)
+            std::string dest_addr_hex = deposit_data.get("destination_address", "");
+            if (!dest_addr_hex.empty()) {
+                // Convert hex string to bytes
+                for (size_t i = 0; i < dest_addr_hex.length(); i += 2) {
+                    if (i + 1 < dest_addr_hex.length()) {
+                        std::string byte_str = dest_addr_hex.substr(i, 2);
+                        uint8_t byte_val = static_cast<uint8_t>(std::stoi(byte_str, nullptr, 16));
+                        deposit.destination_address.push_back(byte_val);
+                    }
+                }
+            }
+            
+            // Parse the full wallet transaction data from the 'tx' object
+            auto tx_data = deposit_data.get_child_optional("tx");
+            if (tx_data) {
+                deposit.wallet_tx.version = tx_data->get("version", 0);
+                deposit.wallet_tx.lock_time = tx_data->get("lock_time", 0);
+                
+                // Parse inputs
+                auto inputs = tx_data->get_child_optional("input");
+                if (inputs) {
+                    for (const auto& input : *inputs) {
+                        std::string prev_output = input.second.get("previous_output", "");
+                        deposit.wallet_tx.inputs.push_back(prev_output);
+                    }
+                }
+                
+                // Parse outputs and try to extract deposit amount and sidechain info if not already set
+                auto outputs = tx_data->get_child_optional("output");
+                if (outputs) {
+                    for (const auto& output : *outputs) {
+                        std::string script_pubkey = output.second.get("script_pubkey", "");
+                        deposit.wallet_tx.outputs.push_back(script_pubkey);
+                        
+                        // If deposit_amount is not set, try to extract it from the first non-zero output
+                        if (deposit.deposit_amount == 0) {
+                            uint64_t output_value = output.second.get("value", 0);
+                            if (output_value > 0) {
+                                deposit.deposit_amount = output_value;
+                            }
+                        }
+                        
+                        // Try to extract sidechain number from script_pubkey if not already set
+                        if (deposit.sidechain_number == 0 && !script_pubkey.empty()) {
+                            // Look for sidechain-related patterns in the script
+                            // This is a heuristic - adjust based on your actual script format
+                            if (script_pubkey.find("6a") == 0) { // OP_RETURN
+                                // Try to parse sidechain number from OP_RETURN data
+                                // This would need to be customized based on your specific script format
+                                LogPrintf("Found OP_RETURN script: %s\n", script_pubkey.c_str());
+                            }
+                        }
+                    }
+                }
+                
+                // Parse witnesses (if present)
+                auto inputs_with_witness = tx_data->get_child_optional("input");
+                if (inputs_with_witness) {
+                    for (const auto& input : *inputs_with_witness) {
+                        auto witness = input.second.get_child_optional("witness");
+                        if (witness) {
+                            std::string witness_data;
+                            for (const auto& witness_item : *witness) {
+                                if (!witness_data.empty()) witness_data += ",";
+                                witness_data += witness_item.second.get_value<std::string>();
+                            }
+                            deposit.wallet_tx.witnesses.push_back(witness_data);
+                        } else {
+                            deposit.wallet_tx.witnesses.push_back("");
+                        }
+                    }
+                }
+            }
             
             // Parse chain_position data
-            auto chain_position = tx_data.get_child_optional("chain_position");
+            auto chain_position = deposit_data.get_child_optional("chain_position");
             if (chain_position) {
                 auto confirmed = chain_position->get_child_optional("Confirmed");
                 if (confirmed) {
@@ -465,6 +532,16 @@ bool RPCGetSidechainDeposits(std::vector<SidechainDeposit>& deposits)
                     }
                 }
             }
+            
+            // Generate a unique ID for the deposit (since it's no longer provided in the response)
+            // Using the index in the array as a fallback ID
+            static int deposit_counter = 0;
+            deposit.id = ++deposit_counter;
+            
+            // Log the parsed deposit information for debugging
+            LogPrintf("Parsed deposit %d: txid=%s, sidechain=%d, amount=%llu, fee=%llu\n", 
+                     deposit.id, deposit.txid.c_str(), deposit.sidechain_number, 
+                     deposit.deposit_amount, deposit.fee);
             
             deposits.push_back(deposit);
         }
